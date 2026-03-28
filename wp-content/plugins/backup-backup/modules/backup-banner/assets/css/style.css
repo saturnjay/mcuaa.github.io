@@ -1,0 +1,522 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+/* ── Dark overlay ── */
+.bmi-backup-banner__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 84, 80, 0.7);
+  z-index: 99999;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.bmi-backup-banner__overlay.bmi-backup-banner--ready {
+  visibility: visible;
+  opacity: 1;
+}
+
+#adminmenuwrap,
+#adminmenu {
+  position: relative;
+  z-index: 100000;
+  pointer-events: none;
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+#adminmenu .wp-submenu {
+  padding:0 !important;
+}
+/* Re-enable only target item */
+#toplevel_page_backup-migration,
+#toplevel_page_backup-migration * {
+  pointer-events: auto;
+}
+/* Per-item overlay */
+.bmi-menu-dim {
+  position: relative;
+}
+
+.bmi-menu-dim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 84, 80, 0.7);
+
+}
+
+/* ── Sidebar menu item highlight ── */
+.bmi-backup-banner--sidebar-highlight {
+  position: relative;
+  outline: 2px dashed #E0F2F7 !important;
+  outline-offset: 0px;
+  border-radius: 15px;
+  z-index: 100000;
+}
+
+/* ── Wavy arrow ── */
+.bmi-backup-banner__waved-arrow {
+  position: fixed;
+  z-index: 100001;
+  pointer-events: none;
+  /* JS will position this dynamically */
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.bmi-backup-banner__waved-arrow.bmi-backup-banner--ready {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s ease, visibility 0.3s ease,
+              top 0.4s cubic-bezier(0.3, 0, 0.7, 1),
+              left 0.4s cubic-bezier(0.3, 0, 0.7, 1),
+              width 0.4s cubic-bezier(0.3, 0, 0.7, 1);
+  will-change: top, left, width;
+}
+
+/* ── Floating popup ── */
+.bmi-backup-banner {
+  position: fixed;
+  z-index: 100001;
+  top: 45%;
+  left: 45%;
+  transform: translateX(-50%);
+  max-width: 980px;
+  width: calc(100% - 40px);
+  font-family: "Montserrat", sans-serif;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.bmi-backup-banner.bmi-backup-banner--ready {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.3s ease, visibility 0.3s ease,
+              transform 0.4s cubic-bezier(0.3, 0, 0.7, 1),
+              top 0.4s cubic-bezier(0.3, 0, 0.7, 1),
+              left 0.4s cubic-bezier(0.3, 0, 0.7, 1),
+              width 0.4s cubic-bezier(0.3, 0, 0.7, 1);
+  will-change: transform, top, left, width;
+}
+
+.bmi-backup-banner *,
+.bmi-backup-banner *::before,
+.bmi-backup-banner *::after {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+}
+
+/* ── Inner container ── */
+.bmi-backup-banner__inner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(179deg, rgba(251, 251, 255, 1) 0%, rgba(215, 239, 245, 1) 100%);
+  padding: 25px 40px 55px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Background pattern (decorative) ── */
+.bmi-backup-banner__bg-pattern {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 347px;
+  height: 289px;
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Close button ── */
+.bmi-backup-banner__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.bmi-backup-banner__close:hover {
+  opacity: 1;
+}
+
+.bmi-backup-banner__close img {
+  width: 20px;
+  height: 20px;
+}
+
+/* ── Content area (above bg) ── */
+.bmi-backup-banner__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Header (icon + title) ── */
+.bmi-backup-banner__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.bmi-backup-banner__alarm-icon {
+  width: 81px;
+  height: 70px;
+}
+
+.bmi-backup-banner__title {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1.3;
+  color: #3C434A;
+  text-align: center;
+  margin: 0;
+  max-width: 541px;
+}
+
+/* ── Body (subtitle + feature cards) ── */
+.bmi-backup-banner__body {
+  margin-top: 30px;
+  margin-bottom: 45px;
+}
+
+.bmi-backup-banner__subtitle {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 300;
+  font-size: 20px;
+  line-height: 1.5;
+  color: #3C434A;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Feature cards row ── */
+.bmi-backup-banner__features {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 15px;
+  gap: 10px;
+}
+
+.bmi-backup-banner__feature-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 28px;
+  background: #fff;
+  padding: 13px 23px 13px 18px;
+  border-radius: 20px;
+
+}
+
+.bmi-backup-banner__feature-icon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.bmi-backup-banner__feature-icon img {
+  width: 55px;
+  height: 55px;
+  flex-shrink: 0;
+}
+
+.bmi-backup-banner__feature-text {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 1.4;
+  color: #3C434A;
+}
+
+/* ── Actions (buttons) ── */
+.bmi-backup-banner__actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+.bmi-backup-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 163px;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.22;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.bmi-backup-banner__btn:hover {
+  opacity: 0.9;
+}
+
+.bmi-backup-banner__btn:focus {
+  outline: 2px solid #148E87;
+  outline-offset: 2px;
+}
+
+/* Primary button (green) */
+.bmi-backup-banner__btn--primary {
+  gap: 15px;
+  padding: 20px 40px 20px 20px;
+  background-color: #148E87;
+  color: #FFFFFF;
+  border: none;
+}
+
+.bmi-backup-banner__btn--primary:hover {
+  background-color: #117a74;
+  color: #FFFFFF;
+}
+
+.bmi-backup-banner__btn-arrow {
+  width: 28px;
+  height: 28px;
+}
+
+/* Secondary button (outline) */
+.bmi-backup-banner__btn--secondary {
+  gap: 20px;
+  padding: 20px 40px;
+  color: #148E87;
+  border: 1px solid #148E87;
+}
+
+.bmi-backup-banner__btn--secondary:hover {
+  background-color: #f0faf9;
+  color: #148E87;
+}
+
+.green{
+    color: #148E87;
+}
+
+.bold{
+    font-weight: bold;
+
+}
+
+.semi-bold{
+    font-weight: 500;
+}
+
+.nowrap{
+    white-space: nowrap;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1500px) {
+  .bmi-backup-banner {
+    left: 50%;
+    max-width: 900px;
+  }
+
+  .bmi-backup-banner__title {
+    font-size: 32px;
+  }
+
+  .bmi-backup-banner__subtitle {
+    font-size: 18px;
+  }
+
+  .bmi-backup-banner__feature-text {
+    font-size: 16px;
+  }
+
+  .bmi-backup-banner__btn {
+    font-size: 16px;
+  }
+
+  .bmi-backup-banner__btn--primary {
+    padding: 18px 32px 18px 18px;
+  }
+
+  .bmi-backup-banner__btn--secondary {
+    padding: 18px 32px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .bmi-backup-banner {
+    max-width: 600px;
+    top: auto;
+  }
+
+  /* Override inline widths on feature cards at all sizes */
+  .bmi-backup-banner__feature-card {
+    width: auto !important;
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .bmi-backup-banner__title {
+    font-size: 24px;
+  }
+
+  .bmi-backup-banner__subtitle {
+    font-size: 16px;
+  }
+
+  .bmi-backup-banner__features {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .bmi-backup-banner__feature-card {
+    flex: 1 1 100% !important;
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 18px;
+  }
+
+  .bmi-backup-banner__feature-text {
+    max-width: none;
+    font-size: 15px;
+  }
+
+  .bmi-backup-banner__actions {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .bmi-backup-banner__btn {
+    width: 100%;
+    max-width: 420px;
+    justify-content: center;
+    font-size: 15px;
+  }
+
+  .bmi-backup-banner__inner {
+    padding: 25px 25px 40px;
+  }
+
+  .bmi-backup-banner__body {
+    margin-top: 15px;
+    margin-bottom: 25px;
+  }
+
+  /* Hide wavy arrow on smaller screens */
+  .bmi-backup-banner__waved-arrow {
+    display: none !important;
+  }
+}
+
+@media (max-width: 782px) {
+  /* WP collapses sidebar at 782px */
+  .bmi-backup-banner {
+    left: 50%;
+    max-width: 520px;
+  }
+
+  .bmi-backup-banner__title {
+    font-size: 22px;
+  }
+
+  .bmi-backup-banner__actions {
+    gap: 12px;
+  }
+
+  .bmi-backup-banner__btn {
+    font-size: 14px;
+    padding: 14px 22px;
+  }
+
+  .bmi-backup-banner__btn--primary {
+    padding: 14px 22px 14px 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .bmi-backup-banner {
+    max-width: none;
+    width: calc(100% - 20px);
+    left: 50%;
+  }
+
+  .bmi-backup-banner__title {
+    font-size: 20px;
+  }
+
+  .bmi-backup-banner__subtitle {
+    font-size: 14px;
+  }
+
+  .bmi-backup-banner__feature-text {
+    font-size: 13px;
+  }
+
+  .bmi-backup-banner__btn {
+    font-size: 13px;
+    padding: 14px 20px;
+  }
+
+  .bmi-backup-banner__btn--primary {
+    padding: 14px 20px 14px 14px;
+  }
+
+  .bmi-backup-banner__inner {
+    padding: 20px 16px 32px;
+    border-radius: 12px;
+  }
+
+  .bmi-backup-banner__alarm-icon {
+    width: 50px;
+    height: 43px;
+  }
+
+  .bmi-backup-banner__feature-icon img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .bmi-backup-banner__feature-card {
+    padding: 10px 14px;
+    gap: 10px;
+    border-radius: 14px;
+  }
+
+  .bmi-backup-banner__bg-pattern {
+    width: 180px;
+    height: auto;
+  }
+
+  .bmi-backup-banner__body {
+    margin-top: 12px;
+    margin-bottom: 20px;
+  }
+}
+@media (max-width: 400px) {
+
+  .bmi-backup-banner__feature-card {
+    padding: 8px 5px;
+  }
+}
