@@ -1,4 +1,5 @@
 {
+  "STORAGE:STRATEGY": "local_and_cloud",
   "STORAGE::DIRECT::URL": "true",
   "STORAGE::LOCAL::PATH": "default",
   "STORAGE::EXTERNAL::GDRIVE": "false",
