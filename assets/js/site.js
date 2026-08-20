@@ -72,7 +72,8 @@
     };
     var scrollTo = function () {
       var card = items[current];
-      if (card) card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      if (!card) return;
+      track.scrollTo({ left: card.offsetLeft - track.offsetLeft, behavior: "smooth" });
     };
     var updateDots = function () {
       if (!dotsWrap) return;
