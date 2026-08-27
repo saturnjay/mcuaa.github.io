@@ -400,6 +400,13 @@ def build_article(p, prev_p, next_p):
     out_path = os.path.join(OUT, p["file_rel"])
     root = rel_prefix(out_path)
     body_html = sanitize_body(p["body_src"], root, p["img_map"])
+
+    # Drop a leading figure that only repeats the cover photo
+    if p["cover"]:
+        m = re.search(r"<figure[^>]*>\s*<img src=\"([^\"]+)\"[^>]*>\s*</figure>", body_html)
+        if m and os.path.basename(m.group(1)) == os.path.basename(p["cover"]):
+            body_html = body_html[:m.start()] + body_html[m.end():]
+
     cover = ""
     if p["cover"]:
         cover = """<div class="post-cover">

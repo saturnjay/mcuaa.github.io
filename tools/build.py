@@ -165,6 +165,7 @@ class BodySanitizer(HTMLParser):
         self.out = []
         self.stack = []
         self.skip = 0
+        self.figure_depth = 0
 
     def _close_to(self, tag):
         while self.stack:
@@ -177,6 +178,9 @@ class BodySanitizer(HTMLParser):
         if self.stack and self.stack[-1] == "p":
             self.stack.pop()
             self.out.append("</p>")
+
+    def figure_open(self):
+        return self.figure_depth > 0
 
     def handle_starttag(self, tag, attrs):
         if tag in ("script", "style"):
@@ -208,7 +212,7 @@ class BodySanitizer(HTMLParser):
         if tag == "a":
             href = d.get("href", "")
             if href.startswith(SITE):
-                href = "_ROOTLINK_" + href[len(SITE):]
+                href = "_ROOTLINK_" + href[len(SITE):].lstrip("/")
             self.out.append('<a href="{}">'.format(href))
             self.stack.append(tag)
             return
@@ -222,11 +226,14 @@ class BodySanitizer(HTMLParser):
             self.stack.append(tag)
             return
         if tag == "figure":
+            if self.figure_open():
+                return  # flatten nested gallery figures
             cls = d.get("class", "").split()
             keep = [c for c in cls if c in ("alignleft", "alignright", "aligncenter")]
             self.out.append('<figure{}>'.format(
                 ' class="{}"'.format(keep[0]) if keep else ""))
             self.stack.append(tag)
+            self.figure_depth = 1
             return
         if tag == "p":
             st = d.get("style", "")
@@ -242,6 +249,13 @@ class BodySanitizer(HTMLParser):
             self.skip -= 1
             return
         if tag not in ALLOWED_TAGS:
+            return
+        if tag == "figure":
+            if self.figure_depth:
+                self.out.append("</figure>")
+                self.figure_depth = 0
+                if self.stack and self.stack[-1] == "figure":
+                    self.stack.pop()
             return
         if tag in TRANS_BLOCK or tag in INLINE:
             if self.stack and self.stack[-1] == tag:
@@ -268,6 +282,7 @@ def sanitize_body(src_html, root, img_map):
     html = html.replace("_ROOTLINK_", root)
     html = re.sub(r"<strong>\s*</strong>", "", html)
     html = re.sub(r"<em>\s*</em>", "", html)
+    html = re.sub(r"<h([1-6])><strong>(.*?)</strong></h\1>", r"<h\1>\2</h\1>", html)
     html = re.sub(r"<span>\s*</span>", "", html)
     html = re.sub(r"<p class=\"ta-\w+\">\s*</p>", "", html)
     html = re.sub(r"<p>\s*</p>", "", html)
@@ -526,9 +541,15 @@ def post_card(out_path, p, with_date=False):
     """Editorial post card (shared by home preview + news listing)."""
     url = href_to(out_path, p["file_rel"])
     date_html = '<span class="post-date">{}</span>'.format(fmt_date_cn(p["date"])) if with_date else ""
+    if p["thumb"]:
+        thumb_html = ('<div class="post-thumb-wrap">'
+                      '<img class="post-thumb" src="{root}{thumb}" alt="" loading="lazy">'
+                      "</div>").format(root=rel_prefix(out_path), thumb=p["thumb"])
+    else:
+        thumb_html = '<div class="post-thumb-wrap post-thumb-empty"></div>'
     return """<article class="post-card reveal">
   <a class="post-card-link" href="{url}">
-    <div class="post-thumb-wrap"><img class="post-thumb" src="{root}{thumb}" alt="" loading="lazy"></div>
+    {thumb}
     <div class="post-card-body">
       {date}
       <h3 class="post-card-title">{title}</h3>
@@ -536,7 +557,7 @@ def post_card(out_path, p, with_date=False):
       <span class="post-more">阅读全文 &rsaquo;</span>
     </div>
   </a>
-</article>""".format(url=url, root=rel_prefix(out_path), thumb=p["thumb"],
+</article>""".format(url=url, thumb=thumb_html,
                    date=date_html, title=p["title"], excerpt=p["excerpt"])
 
 
@@ -575,9 +596,9 @@ def count_faces(image_path):
     return len(faces)
 
 
-def select_gallery_photos(posts, target=20, per_post=3):
+def select_gallery_photos(posts, target=28, per_post=4):
     """Scan all photos in the repo's post folders; several photos per post allowed."""
-    exclude = re.compile(r"screen|poster|海报|banner|Picture|\b2\.png$|\b1_77868", re.I)
+    exclude = re.compile(r"screen|poster|海报|banner|Picture|\b2\.png$|\b1_77868|cover\.png$", re.I)
     lecture = re.compile(r"讲座|分享会|沙龙|论坛", re.I)
     picked = []
     events = [p for p in posts if p["category"] == "活动"]
@@ -592,7 +613,7 @@ def select_gallery_photos(posts, target=20, per_post=3):
         cands = []
         for name in sorted(os.listdir(img_dir)):
             base = name.lower()
-            if exclude.search(base) or not base.endswith((".jpg", ".jpeg")):
+            if exclude.search(base) or not base.endswith((".jpg", ".jpeg", ".png")):
                 continue
             abs_src = os.path.join(img_dir, name)
             target_rel = p["img_map"].get("img/" + name)
@@ -622,7 +643,7 @@ def build_home(posts):
     recent = [post_card(out_path, p) for p in posts[:8]]
     recent = "\n      ".join(recent)
 
-    gallery = select_gallery_photos(posts, 20)
+    gallery = select_gallery_photos(posts, 28)
     gallery_items = []
     for g in gallery:
         gallery_items.append("""<figure class="gallery-item" data-caption="{title}">
@@ -718,7 +739,7 @@ def build_home(posts):
   </div>
 </section>
 
-<section class="section section-gray">
+<section class="section section-gray section-recent-news">
   <div class="section-inner-wide">
     <span class="kicker">News &middot; 新闻动态</span>
     <h2 class="section-title">Recent News</h2>
@@ -751,9 +772,8 @@ def build_news(posts):
     body = """
 <section class="hero hero-small">
   <div class="hero-inner">
-    <p class="hero-kicker">News &middot; 新闻动态</p>
+    <p class="hero-kicker">News</p>
     <h1 class="hero-title">新闻动态</h1>
-    <p class="hero-subtitle">共 {n} 篇报道</p>
   </div>
 </section>
 
@@ -774,11 +794,25 @@ def build_events(posts):
     out_path = os.path.join(OUT, "events.html")
     root = rel_prefix(out_path)
 
-    years = {}
-    for p in posts:
-        years.setdefault(p["date"][:4], []).append(p)
+    # MCUAA lectures go into a dedicated category; the rest are grouped by year
+    lecture = re.compile(r"讲座|分享会|沙龙|论坛")
+    launch_post = "墨尔本中国高校校友会联盟正式启航 共筑校友合作新平台"
+    lectures = [p for p in posts
+                if p["title"] != launch_post
+                and (lecture.search(p["title"]) or lecture.search(p["body_src"]))]
+    others = [p for p in posts if p not in lectures]
 
     groups = []
+    if lectures:
+        cards = "\n      ".join(post_card(out_path, p, True) for p in lectures)
+        groups.append("""<h3 class="sub-title">MCUAA 讲座</h3>
+    <div class="post-list">
+      {cards}
+    </div>""".format(cards=cards))
+
+    years = {}
+    for p in others:
+        years.setdefault(p["date"][:4], []).append(p)
     for year in sorted(years, reverse=True):
         cards = "\n      ".join(post_card(out_path, p, True) for p in years[year])
         groups.append("""<h3 class="sub-title">{year} 年</h3>
@@ -790,9 +824,8 @@ def build_events(posts):
     body = """
 <section class="hero hero-small">
   <div class="hero-inner">
-    <p class="hero-kicker">Events &middot; 活动回顾</p>
+    <p class="hero-kicker">Events</p>
     <h1 class="hero-title">活动回顾</h1>
-    <p class="hero-subtitle">共 {n} 场活动</p>
   </div>
 </section>
 
@@ -825,7 +858,7 @@ def build_members():
     body = """
 <section class="hero hero-small">
   <div class="hero-inner">
-    <p class="hero-kicker">Members &middot; 成员</p>
+    <p class="hero-kicker">Members</p>
     <h1 class="hero-title">成员校友会</h1>
     <p class="hero-subtitle">理事单位 · 正式会员 · 观察会员</p>
   </div>
@@ -866,8 +899,8 @@ def build_constitution():
     body = """
 <section class="hero hero-small">
   <div class="hero-inner">
-    <p class="hero-kicker">Constitution &middot; 章程</p>
-    <h1 class="hero-title">Constitution</h1>
+    <p class="hero-kicker">Constitution</p>
+    <h1 class="hero-title">墨尔本中国高校校友会联盟章程</h1>
   </div>
 </section>
 
@@ -892,7 +925,7 @@ def build_contact():
     body = """
 <section class="hero hero-small">
   <div class="hero-inner">
-    <p class="hero-kicker">Contact &middot; 联系</p>
+    <p class="hero-kicker">Contact</p>
     <h1 class="hero-title">联系我们</h1>
     <p class="hero-subtitle">欢迎通过邮件或微信公众平台与我们联系</p>
   </div>
@@ -922,15 +955,40 @@ def build_contact():
     write(out_path, html)
 
 
+def group_figures(html):
+    """Wrap runs of directly adjacent figures into a responsive photo grid."""
+    parts = re.split(r"(<figure[^>]*>.*?</figure>)", html, flags=re.S)
+    out, run = [], []
+
+    def flush():
+        if not run:
+            return
+        n = len(run)
+        if n >= 2:
+            out.append('<div class="figure-grid cols-{}">{}</div>'.format(
+                min(n, 3), "".join(run)))
+        else:
+            out.append(run[0])
+        run[:] = []
+
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith("<figure"):
+            run.append(part)
+        elif part.strip():
+            flush()
+            out.append(part)
+        # whitespace-only text between figures stays inside the run
+    flush()
+    return "".join(out)
+
+
 def build_article(p, prev_p, next_p):
     out_path = os.path.join(OUT, p["file_rel"])
     root = rel_prefix(out_path)
     body_html = sanitize_body(p["body_src"], root, p["img_map"])
-    cover = ""
-    if p["cover"]:
-        cover = """<div class="post-cover">
-        <img src="{root}{cover}" alt="{title}">
-      </div>""".format(root=root, cover=p["cover"], title=p["title"])
+    body_html = group_figures(body_html)
 
     nav_html = ""
     if prev_p or next_p:
@@ -957,7 +1015,6 @@ def build_article(p, prev_p, next_p):
 </section>
 
 <article class="post-page">
-  {cover}
   <div class="post-content">
     {body}
   </div>
@@ -967,7 +1024,7 @@ def build_article(p, prev_p, next_p):
   </div>
 </article>
 """.format(category=p["category"], date_cn=fmt_date_cn(p["date"]),
-           title=p["title"], cover=cover, body=body_html, nav=nav_html,
+           title=p["title"], body=body_html, nav=nav_html,
            back=back, back_label=back_label)
     html = render_page(root, "News" if p["category"] == "新闻" else "Events",
                        "{} - 墨尔本中国高校校友会联盟 MCUAA".format(p["title"]),

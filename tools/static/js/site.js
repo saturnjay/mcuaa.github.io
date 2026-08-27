@@ -72,7 +72,12 @@
     };
     var scrollTo = function () {
       var card = items[current];
-      if (card) card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      if (!card) return;
+      // Scroll only the track horizontally; never move the page vertically,
+      // so the autoplay cannot yank the viewport back to the gallery.
+      var left = card.offsetLeft - track.offsetLeft -
+        (track.clientWidth - card.offsetWidth) / 2;
+      track.scrollTo({ left: left, behavior: "smooth" });
     };
     var updateDots = function () {
       if (!dotsWrap) return;
