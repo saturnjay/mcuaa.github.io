@@ -1137,7 +1137,8 @@ def main():
     for p in posts:
         encoded = urllib.parse.quote("/{}/{}/{}/{}".format(
             *p["date"].split("-"), p["slug"]), safe="/")
-        p["category"] = "活动" if (SITE + encoded) in event_urls else "新闻"
+        is_lecture = re.search(r"讲座|分享会|沙龙|论坛", p["title"])
+        p["category"] = "活动" if (SITE + encoded) in event_urls or is_lecture else "新闻"
 
         ex, feat = listings.get(SITE + encoded, ("", ""))
         p["excerpt"] = ex
