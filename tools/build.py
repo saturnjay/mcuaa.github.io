@@ -45,9 +45,58 @@ FIXED_IMAGES = [
     ("wechat-qr.png", "assets/img/wechat-qr.png"),
     ("acknowledgement.png", "assets/img/acknowledgement.png"),
     ("hero-home.jpg", "assets/img/hero-home.jpg"),
+    ("hero-annual-meeting-2026-ai.png", "assets/img/hero-annual-meeting-2026-ai.png"),
+    ("hero-golf-tournament-2025-ai.png", "assets/img/hero-golf-tournament-2025-ai.png"),
+    ("hero-guandan-2026.png", "assets/img/hero-guandan-2026.png"),
+    ("hero-mcuaa-launch.jpeg", "assets/img/hero-mcuaa-launch.jpeg"),
+    ("hero-table-tennis-group-2026.jpg", "assets/img/hero-table-tennis-group-2026.jpg"),
+    ("hero-table-tennis-action-2026.jpg", "assets/img/hero-table-tennis-action-2026.jpg"),
+    ("hero-table-tennis-2026.mp4", "assets/video/hero-table-tennis-2026.mp4"),
 ]
 
 IMG_TARGETS = {}  # local source src (within a post folder) -> target path
+
+
+def image_aspect_ratio(path):
+    """Read PNG/JPEG dimensions without requiring Pillow."""
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+
+    if data.startswith(b"\x89PNG\r\n\x1a\n") and len(data) >= 24:
+        width = int.from_bytes(data[16:20], "big")
+        height = int.from_bytes(data[20:24], "big")
+        return width / height if height else None
+
+    if data.startswith(b"\xff\xd8"):
+        i = 2
+        sof_markers = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+                       0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
+        while i + 9 < len(data):
+            if data[i] != 0xFF:
+                i += 1
+                continue
+            while i < len(data) and data[i] == 0xFF:
+                i += 1
+            if i >= len(data):
+                break
+            marker = data[i]
+            i += 1
+            if marker in (0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
+                continue
+            if i + 2 > len(data):
+                break
+            length = int.from_bytes(data[i:i + 2], "big")
+            if length < 2 or i + length > len(data):
+                break
+            if marker in sof_markers and length >= 7:
+                height = int.from_bytes(data[i + 3:i + 5], "big")
+                width = int.from_bytes(data[i + 5:i + 7], "big")
+                return width / height if height else None
+            i += length
+    return None
 
 
 def clean_url(value):
@@ -113,8 +162,11 @@ def build_image_registry(posts):
             p["cover_src"] = cover[0]
             p["cover"] = os.path.join("assets", "img", "posts", p["slug"] + "-cover" + ext)
             p["thumb"] = os.path.join("assets", "img", "posts", p["slug"] + "-cover-640.jpg")
+            aspect = image_aspect_ratio(cover[0])
+            p["thumb_fit"] = "contain" if aspect and aspect < 1.2 else "cover"
         else:
             p["cover"] = p["cover_src"] = p["thumb"] = None
+            p["thumb_fit"] = "cover"
 
         # inline images, flat with <slug>- prefix and collision suffixes
         used = set()
@@ -151,6 +203,7 @@ ALLOWED_TAGS = {
     "a", "strong", "b", "em", "i", "img", "figure", "figcaption",
     "blockquote", "table", "thead", "tbody", "tr", "th", "td",
     "hr", "br", "sub", "sup", "pre", "code", "div", "span",
+    "video", "source",
 }
 TRANS_BLOCK = {"div"}
 INLINE = {"span", "sub", "sup", "code"}
@@ -208,6 +261,25 @@ class BodySanitizer(HTMLParser):
             if alt:
                 extra += ' alt="{}"'.format(alt.replace('"', "&quot;"))
             self.out.append('<img src="__ROOT__{}"{} loading="lazy">'.format(target, extra))
+            return
+        if tag == "video":
+            preload = d.get("preload", "metadata")
+            if preload not in ("none", "metadata", "auto"):
+                preload = "metadata"
+            extra = ' controls playsinline preload="{}"'.format(preload)
+            poster = d.get("poster", "")
+            if poster.startswith("assets/"):
+                extra += ' poster="__ROOT__{}"'.format(poster)
+            self.out.append('<video class="post-video"{}>'.format(extra))
+            self.stack.append(tag)
+            return
+        if tag == "source":
+            src = d.get("src", "")
+            if not src.startswith("assets/"):
+                return
+            media_type = d.get("type", "")
+            extra = ' type="{}"'.format(media_type) if media_type else ""
+            self.out.append('<source src="__ROOT__{}"{}>'.format(src, extra))
             return
         if tag == "a":
             href = d.get("href", "")
@@ -484,7 +556,7 @@ def page_header(root, title, desc, active, overlay=False, canonical=None):
   document.head.appendChild(l);
 }})();
 </script>
-<link rel="stylesheet" href="{root}assets/css/site.css">
+<link rel="stylesheet" href="{root}assets/css/site.css?v=20260918-5">
 <link rel="canonical" href="{canonical}">
 </head>
 <body>
@@ -525,7 +597,7 @@ def page_footer(root):
     <p class="footer-note">Melbourne CUAA Alliance Inc.</p>
   </div>
 </footer>
-<script src="{root}assets/js/site.js"></script>
+<script src="{root}assets/js/site.js?v=20260918-2"></script>
 </body>
 </html>
 """.format(root=root, home=home)
@@ -542,9 +614,11 @@ def post_card(out_path, p, with_date=False):
     url = href_to(out_path, p["file_rel"])
     date_html = '<span class="post-date">{}</span>'.format(fmt_date_cn(p["date"])) if with_date else ""
     if p["thumb"]:
+        thumb_class = "post-thumb post-thumb--contain" if p.get("thumb_fit") == "contain" else "post-thumb"
         thumb_html = ('<div class="post-thumb-wrap">'
-                      '<img class="post-thumb" src="{root}{thumb}" alt="" loading="lazy">'
-                      "</div>").format(root=rel_prefix(out_path), thumb=p["thumb"])
+                      '<img class="{thumb_class}" src="{root}{thumb}" alt="" loading="lazy">'
+                      "</div>").format(thumb_class=thumb_class,
+                                        root=rel_prefix(out_path), thumb=p["thumb"])
     else:
         thumb_html = '<div class="post-thumb-wrap post-thumb-empty"></div>'
     return """<article class="post-card reveal">
@@ -596,46 +670,40 @@ def count_faces(image_path):
     return len(faces)
 
 
+GROUP_GALLERY = {
+    "table-tennis-tournament-2026": ["image34.jpg", "image39.jpg", "image25.jpg", "image28.jpg"],
+    "weiqi-tournament-2026": ["image-41-1024x683.jpeg", "image-42-1024x576.jpeg"],
+    "badminton-tournament-2026": [
+        "image-2-1024x683.jpeg", "image-1-1024x683.jpeg",
+        "image-13-1024x578.jpeg", "image-7-1024x768.jpeg",
+    ],
+    "chinese-new-year-2026": [
+        "27-1-1024x666.jpg", "30-1024x667.jpg", "31.jpg",
+    ],
+    "golf-tournament-2025": ["image2.jpeg", "image9.jpeg", "image10.jpeg", "image6.jpeg"],
+    "tennis-tournament-2025": ["3_79334.jpg", "tennis.jpg", "tennis12.jpg", "tennis4.png"],
+    "table-tennis-tournament-2025": ["pp_all-1024x486.jpg"],
+}
+
+
 def select_gallery_photos(posts, target=28, per_post=4):
-    """Scan all photos in the repo's post folders; several photos per post allowed."""
-    exclude = re.compile(r"screen|poster|海报|banner|Picture|\b2\.png$|\b1_77868|cover\.png$", re.I)
-    lecture = re.compile(r"讲座|分享会|沙龙|论坛", re.I)
+    """Return a reviewed allow-list containing posed group photos only."""
+    del per_post  # retained in the signature for compatibility
+    by_slug = {p["slug"]: p for p in posts}
     picked = []
-    events = [p for p in posts if p["category"] == "活动"]
-    for p in events:
-        if len(picked) >= target:
-            break
-        if lecture.search(p["title"]) or lecture.search(p["body_src"]):
+    for slug, names in GROUP_GALLERY.items():
+        p = by_slug.get(slug)
+        if not p:
             continue
-        img_dir = os.path.join(SRC, "posts", p["folder"], "img")
-        if not os.path.isdir(img_dir):
-            continue
-        cands = []
-        for name in sorted(os.listdir(img_dir)):
-            base = name.lower()
-            if exclude.search(base) or not base.endswith((".jpg", ".jpeg", ".png")):
-                continue
-            abs_src = os.path.join(img_dir, name)
+        for name in names:
             target_rel = p["img_map"].get("img/" + name)
             if not target_rel:
-                cand = os.path.join("assets", "img", "posts", p["slug"] + "-" + name)
-                if os.path.exists(os.path.join(OUT, cand)):
-                    target_rel = cand
-                else:
-                    continue
-            cands.append((target_rel, abs_src, name))
-        if not cands:
-            continue
-        scored = []
-        for rel, abs_src, name in cands:
-            n = count_faces(abs_src) or 0
-            scored.append((n, rel, name))
-        scored.sort(key=lambda c: c[0], reverse=True)
-        for n, rel, name in scored[:per_post]:
+                target_rel = os.path.join("assets", "img", "posts", slug + "-" + name)
+            if os.path.exists(os.path.join(OUT, target_rel)):
+                picked.append({"img": target_rel, "title": p["title"]})
             if len(picked) >= target:
-                break
-            picked.append({"img": rel, "title": p["title"], "faces": n})
-    return picked[:target]
+                return picked
+    return picked
 
 
 def build_home(posts):
@@ -681,7 +749,15 @@ def build_home(posts):
     commits = "\n      ".join(commits)
 
     body = """
-<section class="hero">
+<section class="hero hero-slideshow">
+  <div class="hero-slides" aria-hidden="true">
+    <img class="hero-slide is-active" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" data-duration="12000">
+    <img class="hero-slide hero-slide--table-tennis-group" src="assets/img/hero-table-tennis-group-2026.jpg" alt="" loading="lazy" data-duration="6000">
+    <img class="hero-slide hero-slide--annual" src="assets/img/hero-annual-meeting-2026-ai.png" alt="" loading="lazy" data-duration="6000">
+    <img class="hero-slide" src="assets/img/hero-mcuaa-launch.jpeg" alt="" loading="lazy" data-duration="6000">
+  </div>
+  <button class="hero-slideshow-toggle" type="button" aria-label="暂停背景图片轮播" aria-pressed="false">&#10074;&#10074;</button>
+  <button class="hero-slideshow-next" type="button" aria-label="下一张背景图片">&#8594;</button>
   <div class="hero-inner">
     <h1 class="hero-title">墨尔本中国高校校友会联盟</h1>
     <p class="hero-subtitle">Melbourne CUAA Alliance Inc &ndash; MCUAA</p>
@@ -729,13 +805,11 @@ def build_home(posts):
     <h2 class="section-title">活动精彩瞬间</h2>
     <p class="section-desc">来自各成员校友会的活动留影 &mdash; 点击照片查看大图</p>
     <div class="gallery-carousel" id="galleryCarousel">
-      <div class="gallery-track" id="galleryTrack">
+      <div class="gallery-track gallery-track--forward" id="galleryTrack" aria-label="活动照片第一行" tabindex="0">
         {gallery}
       </div>
-      <button class="gallery-arrow gallery-prev" id="galleryPrev" aria-label="上一张">&lsaquo;</button>
-      <button class="gallery-arrow gallery-next" id="galleryNext" aria-label="下一张">&rsaquo;</button>
+      <div class="gallery-track gallery-track--reverse" id="galleryTrackReverse" aria-label="活动照片第二行" tabindex="0"></div>
     </div>
-    <div class="gallery-dots" id="galleryDots"></div>
   </div>
 </section>
 
@@ -974,8 +1048,11 @@ def group_figures(html):
     for part in parts:
         if not part:
             continue
-        if part.startswith("<figure"):
+        if part.startswith("<figure") and "<video" not in part:
             run.append(part)
+        elif part.startswith("<figure"):
+            flush()
+            out.append(part)
         elif part.strip():
             flush()
             out.append(part)
@@ -1137,8 +1214,8 @@ def main():
     for p in posts:
         encoded = urllib.parse.quote("/{}/{}/{}/{}".format(
             *p["date"].split("-"), p["slug"]), safe="/")
-        is_lecture = re.search(r"讲座|分享会|沙龙|论坛", p["title"])
-        p["category"] = "活动" if (SITE + encoded) in event_urls or is_lecture else "新闻"
+        is_event = re.search(r"讲座|分享会|沙龙|论坛|联谊赛|邀请赛", p["title"])
+        p["category"] = "活动" if (SITE + encoded) in event_urls or is_event else "新闻"
 
         ex, feat = listings.get(SITE + encoded, ("", ""))
         p["excerpt"] = ex

@@ -30,6 +30,88 @@
     });
   }
 
+  // Homepage hero: cross-fade through photos and an on-demand desktop video.
+  var heroSlides = Array.prototype.slice.call(document.querySelectorAll(".hero-slide"));
+  var reduceMotion = window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (heroSlides.length > 1 && !reduceMotion) {
+    var heroSlideIndex = 0;
+    var heroPaused = false;
+    var heroToggle = document.querySelector(".hero-slideshow-toggle");
+    var heroNext = document.querySelector(".hero-slideshow-next");
+    var heroTimer;
+    var saveData = navigator.connection && navigator.connection.saveData;
+    var smallScreen = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+    var allowHeroVideo = !saveData && !smallScreen;
+
+    var stopHeroVideo = function (slide) {
+      if (slide && slide.tagName === "VIDEO") {
+        slide.pause();
+        slide.currentTime = 0;
+      }
+    };
+    var playHeroVideo = function (slide) {
+      if (!allowHeroVideo || !slide || slide.tagName !== "VIDEO") return;
+      slide.muted = true;
+      slide.play().catch(function () {
+        // The poster remains visible if browser autoplay policy blocks playback.
+      });
+    };
+    var prepareNextHeroVideo = function () {
+      if (!allowHeroVideo) return;
+      var next = heroSlides[(heroSlideIndex + 1) % heroSlides.length];
+      if (next && next.tagName === "VIDEO" && next.preload !== "auto") {
+        next.preload = "auto";
+        next.load();
+      }
+    };
+    var activateHeroSlide = function (nextIndex) {
+      stopHeroVideo(heroSlides[heroSlideIndex]);
+      heroSlides[heroSlideIndex].classList.remove("is-active");
+      heroSlideIndex = nextIndex;
+      heroSlides[heroSlideIndex].classList.add("is-active");
+      if (!heroPaused && !document.hidden) playHeroVideo(heroSlides[heroSlideIndex]);
+      prepareNextHeroVideo();
+    };
+    var advanceHeroSlide = function () {
+      activateHeroSlide((heroSlideIndex + 1) % heroSlides.length);
+    };
+    var scheduleHeroSlide = function () {
+      clearTimeout(heroTimer);
+      var duration = Number(heroSlides[heroSlideIndex].getAttribute("data-duration")) || 6000;
+      heroTimer = setTimeout(function () {
+        if (heroPaused || document.hidden) {
+          scheduleHeroSlide();
+          return;
+        }
+        advanceHeroSlide();
+        scheduleHeroSlide();
+      }, duration);
+    };
+    prepareNextHeroVideo();
+    scheduleHeroSlide();
+    if (heroToggle) {
+      heroToggle.addEventListener("click", function () {
+        heroPaused = !heroPaused;
+        if (heroPaused) stopHeroVideo(heroSlides[heroSlideIndex]);
+        else playHeroVideo(heroSlides[heroSlideIndex]);
+        heroToggle.setAttribute("aria-pressed", heroPaused ? "true" : "false");
+        heroToggle.setAttribute("aria-label", heroPaused ? "继续背景图片轮播" : "暂停背景图片轮播");
+        heroToggle.innerHTML = heroPaused ? "&#9654;" : "&#10074;&#10074;";
+      });
+    }
+    if (heroNext) {
+      heroNext.addEventListener("click", function () {
+        advanceHeroSlide();
+        scheduleHeroSlide();
+      });
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) stopHeroVideo(heroSlides[heroSlideIndex]);
+      else if (!heroPaused) playHeroVideo(heroSlides[heroSlideIndex]);
+    });
+  }
+
   // Scroll reveal
   var reveals = document.querySelectorAll(".reveal");
   if ("IntersectionObserver" in window && reveals.length) {
@@ -46,63 +128,85 @@
     reveals.forEach(function (el) { el.classList.add("visible"); });
   }
 
-  // Photo gallery: carousel + lightbox
+  // Photo gallery: two continuously moving rows + lightbox
   var track = document.getElementById("galleryTrack");
-  if (track) {
+  var reverseTrack = document.getElementById("galleryTrackReverse");
+  if (track && reverseTrack) {
     var items = Array.prototype.slice.call(track.querySelectorAll(".gallery-item"));
     var carousel = document.getElementById("galleryCarousel");
-    var prevBtn = document.getElementById("galleryPrev");
-    var nextBtn = document.getElementById("galleryNext");
-    var dotsWrap = document.getElementById("galleryDots");
     var current = 0;
+    var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var pointerActive = false;
 
-    var buildDots = function () {
-      if (!dotsWrap) return;
-      dotsWrap.innerHTML = "";
-      items.forEach(function (_, i) {
-        var d = document.createElement("button");
-        d.className = "gallery-dot";
-        d.setAttribute("aria-label", "照片 " + (i + 1));
-        d.addEventListener("click", function () {
-          current = i;
-          scrollTo();
+    // Keep the source order for the lightbox, while distributing cards evenly.
+    items.forEach(function (item, i) {
+      item.setAttribute("data-gallery-index", i);
+      if (i % 2 === 1) reverseTrack.appendChild(item);
+    });
+
+    var rowTracks = [track, reverseTrack];
+    var rowStates = [];
+    if (!reducedMotion) {
+      rowTracks.forEach(function (row, rowIndex) {
+        var originals = Array.prototype.slice.call(row.querySelectorAll(".gallery-item"));
+        var firstClone = null;
+        originals.forEach(function (item) {
+          var clone = item.cloneNode(true);
+          clone.classList.add("gallery-item--clone");
+          clone.setAttribute("aria-hidden", "true");
+          row.appendChild(clone);
+          if (!firstClone) firstClone = clone;
         });
-        dotsWrap.appendChild(d);
+        rowStates.push({
+          row: row,
+          first: originals[0],
+          clone: firstClone,
+          direction: rowIndex === 0 ? 1 : -1,
+          cycle: 0,
+          position: 0
+        });
       });
-    };
-    var scrollTo = function () {
-      var card = items[current];
-      if (!card) return;
-      // Scroll only the track horizontally; never move the page vertically,
-      // so the autoplay cannot yank the viewport back to the gallery.
-      var left = card.offsetLeft - track.offsetLeft -
-        (track.clientWidth - card.offsetWidth) / 2;
-      track.scrollTo({ left: left, behavior: "smooth" });
-    };
-    var updateDots = function () {
-      if (!dotsWrap) return;
-      var idx = Math.round(track.scrollLeft / (items[0].offsetWidth + 20));
-      idx = Math.max(0, Math.min(items.length - 1, idx));
-      current = idx;
-      var dots = dotsWrap.children;
-      for (var i = 0; i < dots.length; i++) dots[i].classList.toggle("active", i === idx);
-    };
-    if (prevBtn) prevBtn.addEventListener("click", function () {
-      current = Math.max(0, current - 1);
-      scrollTo();
-    });
-    if (nextBtn) nextBtn.addEventListener("click", function () {
-      current = Math.min(items.length - 1, current + 1);
-      scrollTo();
-    });
-    track.addEventListener("scroll", updateDots, { passive: true });
 
-    // autoplay (paused while hovering the carousel)
-    var auto = setInterval(function () {
-      if (document.hidden || carousel.matches(":hover")) return;
-      current = (current + 1) % items.length;
-      scrollTo();
-    }, 4000);
+      var measureRows = function () {
+        rowStates.forEach(function (state) {
+          state.cycle = state.clone.offsetLeft - state.first.offsetLeft;
+          if (state.direction < 0 && state.position <= 1) state.position = state.cycle;
+          if (state.position > state.cycle) state.position %= state.cycle;
+          state.row.scrollLeft = state.position;
+        });
+      };
+      requestAnimationFrame(measureRows);
+      window.addEventListener("resize", measureRows);
+
+      var lastFrame = 0;
+      var moveRows = function (time) {
+        var elapsed = lastFrame ? Math.min(time - lastFrame, 50) : 0;
+        lastFrame = time;
+        var paused = document.hidden || pointerActive || carousel.contains(document.activeElement);
+        if (!paused) {
+          rowStates.forEach(function (state) {
+            if (!state.cycle) return;
+            state.position += state.direction * elapsed * 0.035;
+            if (state.direction > 0 && state.position >= state.cycle) {
+              state.position -= state.cycle;
+            } else if (state.direction < 0 && state.position <= 0) {
+              state.position += state.cycle;
+            }
+            state.row.scrollLeft = state.position;
+          });
+        }
+        requestAnimationFrame(moveRows);
+      };
+      requestAnimationFrame(moveRows);
+    }
+
+    carousel.addEventListener("pointerdown", function () { pointerActive = true; });
+    var resumeRows = function () {
+      rowStates.forEach(function (state) { state.position = state.row.scrollLeft; });
+      pointerActive = false;
+    };
+    window.addEventListener("pointerup", resumeRows);
+    window.addEventListener("pointercancel", resumeRows);
 
     // lightbox
     var lightbox = document.createElement("div");
@@ -126,8 +230,10 @@
       lightbox.classList.remove("open");
       document.body.style.overflow = "";
     };
-    items.forEach(function (it, i) {
-      it.addEventListener("click", function () { openLightbox(i); });
+    Array.prototype.forEach.call(carousel.querySelectorAll(".gallery-item"), function (it) {
+      it.addEventListener("click", function () {
+        openLightbox(Number(it.getAttribute("data-gallery-index")));
+      });
     });
     lightbox.querySelector(".lightbox-close").addEventListener("click", closeLightbox);
     lightbox.addEventListener("click", function (e) { if (e.target === lightbox) closeLightbox(); });
@@ -145,21 +251,13 @@
       if (e.key === "ArrowLeft") openLightbox((current + items.length - 1) % items.length);
       if (e.key === "ArrowRight") openLightbox((current + 1) % items.length);
     });
-
-    buildDots();
-    updateDots();
   }
 
-  // Commitment cards: hint + auto-flip one card every 6 seconds once in view,
+  // Commitment cards: auto-flip one card every 6 seconds once in view,
   // skipped for a cycle if the user has interacted with the cards.
   var commitWrap = document.querySelector(".commit-wrap");
   if (commitWrap) {
     var cards = Array.prototype.slice.call(commitWrap.querySelectorAll(".commit-card"));
-    var hint = document.createElement("div");
-    hint.className = "commit-hint";
-    hint.textContent = "悬停或点击卡片查看英文翻译 · Hover or tap a card to see English";
-    commitWrap.insertBefore(hint, commitWrap.querySelector(".commit-cards"));
-
     var interacted = false;
     var flipIndex = 0;
     cards.forEach(function (c) {
@@ -168,7 +266,7 @@
       });
     });
 
-    var reduceMotion = window.matchMedia &&
+    reduceMotion = window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     var demo = function () {
@@ -176,12 +274,10 @@
         interacted = false;
         return;
       }
-      hint.classList.add("show");
       var card = cards[flipIndex % cards.length];
       card.classList.add("auto-flip");
       setTimeout(function () {
         card.classList.remove("auto-flip");
-        hint.classList.remove("show");
       }, 2600);
       flipIndex++;
     };
