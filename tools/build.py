@@ -45,6 +45,7 @@ FIXED_IMAGES = [
     ("wechat-qr.png", "assets/img/wechat-qr.png"),
     ("acknowledgement.png", "assets/img/acknowledgement.png"),
     ("hero-home.jpg", "assets/img/hero-home.jpg"),
+    ("hero-soft-volleyball-group-2026.jpg", "assets/img/hero-soft-volleyball-group-2026.jpg"),
     ("hero-annual-meeting-2026-ai.png", "assets/img/hero-annual-meeting-2026-ai.png"),
     ("hero-golf-tournament-2025-ai.png", "assets/img/hero-golf-tournament-2025-ai.png"),
     ("hero-guandan-2026.png", "assets/img/hero-guandan-2026.png"),
@@ -671,6 +672,7 @@ def count_faces(image_path):
 
 
 GROUP_GALLERY = {
+    "soft-volleyball-tournament-2026": ["image36.jpg", "image42.jpg", "image46.jpg", "image50.jpg"],
     "table-tennis-tournament-2026": ["image34.jpg", "image39.jpg", "image25.jpg", "image28.jpg"],
     "weiqi-tournament-2026": ["image-41-1024x683.jpeg", "image-42-1024x576.jpeg"],
     "badminton-tournament-2026": [
@@ -683,6 +685,15 @@ GROUP_GALLERY = {
     "golf-tournament-2025": ["image2.jpeg", "image9.jpeg", "image10.jpeg", "image6.jpeg"],
     "tennis-tournament-2025": ["3_79334.jpg", "tennis.jpg", "tennis12.jpg", "tennis4.png"],
     "table-tennis-tournament-2025": ["pp_all-1024x486.jpg"],
+}
+
+GROUP_GALLERY_CAPTIONS = {
+    "soft-volleyball-tournament-2026": {
+        "image36.jpg": "首届气排球联谊赛 · 男子A组冠军西北工业大学男子联队",
+        "image42.jpg": "首届气排球联谊赛 · 女子A组冠军厦门大学女子联队",
+        "image46.jpg": "首届气排球联谊赛 · 男子B组冠军东南大学男子联队",
+        "image50.jpg": "首届气排球联谊赛 · 女子B组冠军上海中医药大学女子联队",
+    },
 }
 
 
@@ -700,7 +711,8 @@ def select_gallery_photos(posts, target=28, per_post=4):
             if not target_rel:
                 target_rel = os.path.join("assets", "img", "posts", slug + "-" + name)
             if os.path.exists(os.path.join(OUT, target_rel)):
-                picked.append({"img": target_rel, "title": p["title"]})
+                caption = GROUP_GALLERY_CAPTIONS.get(slug, {}).get(name, p["title"])
+                picked.append({"img": target_rel, "title": caption})
             if len(picked) >= target:
                 return picked
     return picked
@@ -751,7 +763,8 @@ def build_home(posts):
     body = """
 <section class="hero hero-slideshow">
   <div class="hero-slides" aria-hidden="true">
-    <img class="hero-slide is-active" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" data-duration="12000">
+    <img class="hero-slide is-active" src="assets/img/hero-soft-volleyball-group-2026.jpg" alt="" fetchpriority="high" data-duration="12000">
+    <img class="hero-slide" src="assets/img/hero-home.jpg" alt="" loading="lazy" data-duration="6000">
     <img class="hero-slide hero-slide--table-tennis-group" src="assets/img/hero-table-tennis-group-2026.jpg" alt="" loading="lazy" data-duration="6000">
     <img class="hero-slide hero-slide--annual" src="assets/img/hero-annual-meeting-2026-ai.png" alt="" loading="lazy" data-duration="6000">
     <img class="hero-slide" src="assets/img/hero-mcuaa-launch.jpeg" alt="" loading="lazy" data-duration="6000">
