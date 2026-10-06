@@ -881,7 +881,7 @@ def build_events(posts):
     out_path = os.path.join(OUT, "events.html")
     root = rel_prefix(out_path)
 
-    # MCUAA lectures go into a dedicated category; the rest are grouped by year
+    # Group events by year, then show MCUAA lectures by year at the bottom.
     lecture = re.compile(r"讲座|分享会|沙龙|论坛")
     launch_post = "墨尔本中国高校校友会联盟正式启航 共筑校友合作新平台"
     lectures = [p for p in posts
@@ -890,19 +890,24 @@ def build_events(posts):
     others = [p for p in posts if p not in lectures]
 
     groups = []
-    if lectures:
-        cards = "\n      ".join(post_card(out_path, p, True) for p in lectures)
-        groups.append("""<h3 class="sub-title">MCUAA 讲座</h3>
-    <div class="post-list">
-      {cards}
-    </div>""".format(cards=cards))
-
     years = {}
     for p in others:
         years.setdefault(p["date"][:4], []).append(p)
     for year in sorted(years, reverse=True):
         cards = "\n      ".join(post_card(out_path, p, True) for p in years[year])
         groups.append("""<h3 class="sub-title">{year} 年</h3>
+    <div class="post-list">
+      {cards}
+    </div>""".format(year=year, cards=cards))
+
+    if lectures:
+        groups.append('<h2 class="section-title">MCUAA 讲座</h2>')
+        lecture_years = {}
+        for p in lectures:
+            lecture_years.setdefault(p["date"][:4], []).append(p)
+        for year in sorted(lecture_years, reverse=True):
+            cards = "\n      ".join(post_card(out_path, p, True) for p in lecture_years[year])
+            groups.append("""<h3 class="sub-title">{year} 年</h3>
     <div class="post-list">
       {cards}
     </div>""".format(year=year, cards=cards))
