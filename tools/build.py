@@ -207,7 +207,7 @@ ALLOWED_TAGS = {
     "video", "source",
 }
 TRANS_BLOCK = {"div"}
-INLINE = {"span", "sub", "sup", "code"}
+INLINE = {"span", "code"}
 P_CLOSERS = {"figure", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
              "blockquote", "table", "p", "hr", "div", "li", "pre"}
 
