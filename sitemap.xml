@@ -2,15 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.mcuaa.org.au/</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://www.mcuaa.org.au/news.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://www.mcuaa.org.au/events.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://www.mcuaa.org.au/members.html</loc>
@@ -23,6 +23,10 @@
   <url>
     <loc>https://www.mcuaa.org.au/contact.html</loc>
     <lastmod>2026-07-13</lastmod>
+  </url>
+  <url>
+    <loc>https://www.mcuaa.org.au/articles/tennis-tournament-2026.html</loc>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://www.mcuaa.org.au/articles/membrane-nanomaterials-lecture.html</loc>

@@ -1666,7 +1666,8 @@ a:hover { color: var(--link-hover); }
   object-fit: cover;
 }
 .post-content .figure-grid figure img[src*=".png"],
-.post-content .figure-grid figure img[src*=".PNG"] {
+.post-content .figure-grid figure img[src*=".PNG"],
+.post-content .figure-grid figure:has(figcaption) img {
   aspect-ratio: auto;
 }
 .post-content blockquote {

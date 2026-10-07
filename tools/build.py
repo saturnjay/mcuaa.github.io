@@ -557,7 +557,7 @@ def page_header(root, title, desc, active, overlay=False, canonical=None):
   document.head.appendChild(l);
 }})();
 </script>
-<link rel="stylesheet" href="{root}assets/css/site.css?v=20260918-5">
+<link rel="stylesheet" href="{root}assets/css/site.css?v=20261007-1">
 <link rel="canonical" href="{canonical}">
 </head>
 <body>
@@ -613,7 +613,7 @@ def render_page(root, active, title, desc, body_html, overlay=False, canonical=N
 def post_card(out_path, p, with_date=False):
     """Editorial post card (shared by home preview + news listing)."""
     url = href_to(out_path, p["file_rel"])
-    date_html = '<span class="post-date">{}</span>'.format(fmt_date_cn(p["date"])) if with_date else ""
+    date_html = '      <span class="post-date">{}</span>'.format(fmt_date_cn(p["date"])) if with_date else ""
     if p["thumb"]:
         thumb_class = "post-thumb post-thumb--contain" if p.get("thumb_fit") == "contain" else "post-thumb"
         thumb_html = ('<div class="post-thumb-wrap">'
@@ -626,7 +626,7 @@ def post_card(out_path, p, with_date=False):
   <a class="post-card-link" href="{url}">
     {thumb}
     <div class="post-card-body">
-      {date}
+{date}
       <h3 class="post-card-title">{title}</h3>
       <p class="post-excerpt">{excerpt}</p>
       <span class="post-more">阅读全文 &rsaquo;</span>
@@ -672,6 +672,7 @@ def count_faces(image_path):
 
 
 GROUP_GALLERY = {
+    "tennis-tournament-2026": ["image1.jpg", "image27.jpg", "image28.jpg", "image31.jpg"],
     "soft-volleyball-tournament-2026": ["image36.jpg", "image42.jpg", "image46.jpg", "image50.jpg"],
     "table-tennis-tournament-2026": ["image34.jpg", "image39.jpg", "image25.jpg", "image28.jpg"],
     "weiqi-tournament-2026": ["image-41-1024x683.jpeg", "image-42-1024x576.jpeg"],
@@ -688,6 +689,12 @@ GROUP_GALLERY = {
 }
 
 GROUP_GALLERY_CAPTIONS = {
+    "tennis-tournament-2026": {
+        "image1.jpg": "第二届墨尔本中国高校网球联谊赛 · 参赛校友合影",
+        "image27.jpg": "第二届墨尔本中国高校网球联谊赛 · 冠军铂金北京联队",
+        "image28.jpg": "第二届墨尔本中国高校网球联谊赛 · 亚军云南安宁红土高校联队",
+        "image31.jpg": "第二届墨尔本中国高校网球联谊赛 · 华南理工西湖队、东湖队及会务组",
+    },
     "soft-volleyball-tournament-2026": {
         "image36.jpg": "首届气排球联谊赛 · 男子A组冠军西北工业大学男子联队",
         "image42.jpg": "首届气排球联谊赛 · 女子A组冠军厦门大学女子联队",
@@ -883,9 +890,11 @@ def build_events(posts):
 
     # Group events by year, then show MCUAA lectures by year at the bottom.
     lecture = re.compile(r"讲座|分享会|沙龙|论坛")
+    tournament = re.compile(r"联谊赛|邀请赛")
     launch_post = "墨尔本中国高校校友会联盟正式启航 共筑校友合作新平台"
     lectures = [p for p in posts
                 if p["title"] != launch_post
+                and not tournament.search(p["title"])
                 and (lecture.search(p["title"]) or lecture.search(p["body_src"]))]
     others = [p for p in posts if p not in lectures]
 
@@ -1168,7 +1177,8 @@ def redirect_page(path, target):
 
 
 def build_sitemap(posts):
-    pages = [("", "2026-07-13"), ("news.html", "2026-07-13"), ("events.html", "2026-07-13"),
+    latest = max(p["date"] for p in posts) if posts else "2026-07-13"
+    pages = [("", latest), ("news.html", latest), ("events.html", latest),
              ("members.html", "2026-07-13"), ("constitution.html", "2026-07-13"),
              ("contact.html", "2026-07-13")]
     urls = ["  <url>\n    <loc>{}/{}</loc>\n    <lastmod>{}</lastmod>\n  </url>".format(SITE, u, d)
