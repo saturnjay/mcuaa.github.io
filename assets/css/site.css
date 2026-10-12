@@ -1370,6 +1370,18 @@ a:hover { color: var(--link-hover); }
   box-shadow: 0 6px 18px rgba(68, 96, 165, 0.45);
 }
 
+.member-tag {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-left: 2px;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+}
+.member-tag.fm { color: var(--blue-600); }
+.member-tag.om { color: var(--gold); }
+
 /* ---------- Constitution (continuous document, as on mcuaa.org.au) ---------- */
 .constitution-doc {
   max-width: 1240px;

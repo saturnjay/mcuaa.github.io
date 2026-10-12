@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Finder/duplicate artifacts: "file 2.jpg", "image 2.png", ...
+* 2.*
