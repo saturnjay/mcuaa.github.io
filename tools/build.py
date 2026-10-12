@@ -942,12 +942,23 @@ def build_events(posts):
 
 
 def member_item_html(name):
-    """Render one member entry, tagging a trailing (FM)/(OM) status."""
+    """Render one member entry, tagging a trailing (FM)/(OM) status.
+
+    A leading "#N" marker sets an explicit badge number (used by 理事单位,
+    whose numbers reference the master membership list); otherwise the
+    section's CSS counter is used.
+    """
+    num = None
+    m = re.match(r"^#(\d+)\s+(.*)$", name)
+    if m:
+        num = m.group(1)
+        name = m.group(2)
+    attr = ' data-num="{}"'.format(num) if num else ""
     m = re.match(r"^(.*?)\s*\((FM|OM)\)\s*$", name)
     if m:
-        return '<li>{} <span class="member-tag {}">({})</span></li>'.format(
-            m.group(1), m.group(2).lower(), m.group(2))
-    return "<li>{}</li>".format(name)
+        return '<li{}>{} <span class="member-tag {}">({})</span></li>'.format(
+            attr, m.group(1), m.group(2).lower(), m.group(2))
+    return "<li{}>{}</li>".format(attr, name)
 
 
 def build_members():
@@ -963,14 +974,14 @@ def build_members():
           {items}
         </ol>
       </section>""".format(title=g["title"], n=len(g["items"]), items=items))
-    groups = "\n    ".join(groups)
+    groups = "\n      ".join(groups)
 
     body = """
 <section class="hero hero-small">
   <div class="hero-inner">
     <p class="hero-kicker">Members</p>
     <h1 class="hero-title">成员校友会</h1>
-    <p class="hero-subtitle">正式会员 (FM) · 观察会员 (OM)</p>
+    <p class="hero-subtitle">理事单位 · 正式会员 (FM) · 观察会员 (OM)</p>
   </div>
 </section>
 
@@ -983,7 +994,7 @@ def build_members():
 </section>
 """.format(groups=groups)
     html = render_page(root, "Members", "成员 | MEMBERS - 墨尔本中国高校校友会联盟 MCUAA",
-                       "MCUAA 成员校友会名单：正式会员 (FM) 与观察会员 (OM)。", body)
+                       "MCUAA 成员校友会名单：理事单位、正式会员 (FM) 与观察会员 (OM)。", body)
     write(out_path, html)
 
 

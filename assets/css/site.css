@@ -1370,6 +1370,9 @@ a:hover { color: var(--link-hover); }
   box-shadow: 0 6px 18px rgba(68, 96, 165, 0.45);
 }
 
+/* Explicit badge number (e.g. 理事单位 referencing the master list) */
+.criteria-list li[data-num]::before { content: attr(data-num); }
+
 .member-tag {
   font-family: var(--font-sans);
   font-size: 11px;
