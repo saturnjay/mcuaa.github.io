@@ -968,12 +968,17 @@ def build_members():
     groups = []
     for g in members:
         items = "\n          ".join(member_item_html(name) for name in g["items"])
+        count = ""
+        if g["title"] != "理事单位":
+            count = (' <span style="font-size:13px;color:var(--text-tertiary);'
+                     'letter-spacing:1px;font-family:var(--font-sans)">（{n} 个）</span>'
+                     ).format(n=len(g["items"]))
         groups.append("""<section class="member-group reveal">
-        <h3 class="sub-title">{title} <span style="font-size:13px;color:var(--text-tertiary);letter-spacing:1px;font-family:var(--font-sans)">（{n} 个）</span></h3>
+        <h3 class="sub-title">{title}{count}</h3>
         <ol class="criteria-list">
           {items}
         </ol>
-      </section>""".format(title=g["title"], n=len(g["items"]), items=items))
+      </section>""".format(title=g["title"], count=count, items=items))
     groups = "\n      ".join(groups)
 
     body = """
@@ -981,7 +986,7 @@ def build_members():
   <div class="hero-inner">
     <p class="hero-kicker">Members</p>
     <h1 class="hero-title">成员校友会</h1>
-    <p class="hero-subtitle">理事单位 · 正式会员 (FM) · 观察会员 (OM)</p>
+    <p class="hero-subtitle">所有会员 · 理事单位</p>
   </div>
 </section>
 
@@ -994,7 +999,7 @@ def build_members():
 </section>
 """.format(groups=groups)
     html = render_page(root, "Members", "成员 | MEMBERS - 墨尔本中国高校校友会联盟 MCUAA",
-                       "MCUAA 成员校友会名单：理事单位、正式会员 (FM) 与观察会员 (OM)。", body)
+                       "MCUAA 成员校友会名单：所有会员与理事单位。", body)
     write(out_path, html)
 
 
