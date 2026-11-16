@@ -672,6 +672,7 @@ def count_faces(image_path):
 
 
 GROUP_GALLERY = {
+    "golf-tournament-2026": ["image1.jpeg", "image2.jpeg", "image3.jpeg", "image6.jpeg"],
     "tennis-tournament-2026": ["image1.jpg", "image27.jpg", "image28.jpg", "image31.jpg"],
     "soft-volleyball-tournament-2026": ["image36.jpg", "image42.jpg", "image46.jpg", "image50.jpg"],
     "table-tennis-tournament-2026": ["image34.jpg", "image39.jpg", "image25.jpg", "image28.jpg"],
@@ -689,6 +690,12 @@ GROUP_GALLERY = {
 }
 
 GROUP_GALLERY_CAPTIONS = {
+    "golf-tournament-2026": {
+        "image1.jpeg": "第二届墨尔本中国高校校友高尔夫联谊赛 · 全体参赛球员合影",
+        "image2.jpeg": "第二届墨尔本中国高校校友高尔夫联谊赛 · 校友相聚 Moonah Links",
+        "image3.jpeg": "第二届墨尔本中国高校校友高尔夫联谊赛 · 大连理工大学队",
+        "image6.jpeg": "第二届墨尔本中国高校校友高尔夫联谊赛 · 清华大学队",
+    },
     "tennis-tournament-2026": {
         "image1.jpg": "第二届墨尔本中国高校联盟网球联谊赛 · 参赛校友合影",
         "image27.jpg": "第二届墨尔本中国高校联盟网球联谊赛 · 冠军铂金北京联队",
